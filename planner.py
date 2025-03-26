@@ -8,6 +8,10 @@ class Planner:
     def load_tasks(self):
         self.task_list = notion.get_tasks()
 
+    def show_tasks(self):
+        for task in self.task_list:
+            print(task)
+
 
     # add task
     def _add_task_to_local(self, task):
@@ -22,7 +26,7 @@ class Planner:
 
     # delete task
     def _delete_task_from_local(self, task_id):
-        task_list = [t for t in task_list if t.task_id != task_id]
+        self.task_list = [t for t in self.task_list if t.task_id != task_id]
 
     def delete_task(self, task_id):
         notion.delete_task_from_remote(task_id)
