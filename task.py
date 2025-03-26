@@ -1,0 +1,24 @@
+from datetime import datetime
+
+
+class Task:
+    def __init__(self, task_id, name, date, group):
+        self.task_id = task_id
+        self.name = name
+        self.date = {
+            'start': date.get('start', None) if isinstance(date.get('start'), datetime) else datetime.fromisoformat(date.get('start')) if date.get('start') else None,
+            'end': date.get('end', None) if isinstance(date.get('end'), datetime) else datetime.fromisoformat(date.get('end')) if date.get('end') else None
+        }
+        self.group = group
+        self.description = None
+
+    def __str__(self):
+        date_string = f"{self.date['start'].strftime('%Y-%m-%d %H:%M')}" if self.date['start'] else ''
+        if self.date['end']:
+            date_string += f" ~ {self.date['end'].strftime('%Y-%m-%d %H:%M')}"
+        
+        # not to confuse with the group name empty
+        group_string = f"[{self.group}]" if self.group else ''
+
+        string = f"[{self.task_id}][{self.name}][{date_string}][{group_string}]"
+        return string
