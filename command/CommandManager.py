@@ -1,6 +1,7 @@
-from CommandHandler import CommandHandler
-from CommandRegistry import register
 import shlex
+
+from command import CommandHandler
+from command import register_commands
 
 
 class CommandManager:
@@ -9,11 +10,13 @@ class CommandManager:
 
         self.handler_map = {}
 
+        self._register()
+
     # 필요한 커맨드 등록
     # 등록은 CommandRegistry에서
-    def register(self):
+    def _register(self):
         # Register command handlers here
-        command_list = register()
+        command_list = register_commands(self.command_handler)
         for command in command_list:
             self.handler_map[command.opcode] = command.handle
             print(f"Registered command: {command.opcode}")

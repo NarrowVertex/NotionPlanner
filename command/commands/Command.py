@@ -1,6 +1,14 @@
 from abc import ABC, abstractmethod
-from CommandHandler import CommandHandler
-from task import Task
+from command import CommandHandler
+from notion import Task
+
+
+def register_commands(handler: CommandHandler):
+    command_list = []
+    command_list.append(CommandTaskAdd(handler))
+
+    return command_list
+
 
 class Command(ABC):
     def __init__(self, handler: CommandHandler, opcode):
