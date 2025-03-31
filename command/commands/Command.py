@@ -6,6 +6,8 @@ from notion import Task
 def register_commands(handler: CommandHandler):
     command_list = []
     command_list.append(CommandTaskAdd(handler))
+    command_list.append(CommandTaskDelete(handler))
+    command_list.append(CommandTaskEdit(handler))
 
     return command_list
 
@@ -44,3 +46,28 @@ class CommandTaskAdd(Command):
             return self.handler.handle_task_add(task)
         else:
             return "Invalid number of arguments for task addition."
+
+
+class CommandTaskDelete(Command):
+    def __init__(self, handler):
+        super().__init__(handler, "delete")
+
+    def handle(self, operands):
+        if len(operands) == 1:
+            task_id = operands[0]
+            return self.handler.handle_task_delete(task_id)
+        else:
+            return "Invalid number of arguments for task deletion."
+        
+
+class CommandTaskEdit(Command):
+    def __init__(self, handler):
+        super().__init__(handler, "edit")
+
+    def handle(self, operands):
+        if len(operands) == 2:
+            task_id = operands[0]
+            task_name = operands[1]
+            return self.handler.handle_task_edit(task_id, task_name)
+        else:
+            return "Invalid number of arguments for task update."
