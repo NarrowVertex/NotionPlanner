@@ -2,6 +2,9 @@ class CommandHandler:
     def __init__(self):
         pass
 
+    def handle_task_show(self):
+        return "Showing all tasks."
+
     def handle_task_add(self, task):
         return f"Task added: {task}"
 

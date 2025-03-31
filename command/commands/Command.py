@@ -5,6 +5,7 @@ from notion import Task
 
 def register_commands(handler: CommandHandler):
     command_list = []
+    command_list.append(CommandTaskShow(handler))
     command_list.append(CommandTaskAdd(handler))
     command_list.append(CommandTaskDelete(handler))
     command_list.append(CommandTaskEdit(handler))
@@ -23,6 +24,17 @@ class Command(ABC):
     @abstractmethod
     def handle(self, operands) -> str:
         pass
+
+
+class CommandTaskShow(Command):
+    def __init__(self, handler):
+        super().__init__(handler, "show")
+    
+    def handle(self, operands):
+        if len(operands) == 0:
+            return self.handler.handle_task_show()
+        else:
+            return "Invalid number of arguments for task show."
 
 
 class CommandTaskAdd(Command):
