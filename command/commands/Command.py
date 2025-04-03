@@ -77,9 +77,20 @@ class CommandTaskEdit(Command):
         super().__init__(handler, "edit")
 
     def handle(self, operands):
-        if len(operands) == 2:
+        if len(operands) == 4 or len(operands) == 5:
             task_id = operands[0]
+
             task_name = operands[1]
-            return self.handler.handle_task_edit(task_id, task_name)
+            if len(operands) == 4:
+                task_date = operands[2]
+                task_group = operands[3]
+            elif len(operands) == 5:
+                task_date_start = operands[2]
+                task_date_end = operands[3]
+                task_date = {'start': task_date_start, 'end': task_date_end}
+                task_group = operands[4]
+            task = Task(task_id, task_name, task_date, task_group)
+
+            return self.handler.handle_task_edit(task_id, task)
         else:
             return "Invalid number of arguments for task update."
