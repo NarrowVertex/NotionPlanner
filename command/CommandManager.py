@@ -27,14 +27,35 @@ class CommandManager:
     # 커맨드 실행 후 결과값을 리턴
     def execute_command(self, command: str):
         # Decode the command if needed
-        opcode, operands = self._decode(command)
+        try:                                                    # try-execute for decoding command
+            opcode, operands = self._decode(command)
+        except ValueError as e:                                     # ValueError from shlex.split
+            # Handle ValueErrors (e.g., invalid command format)
+            response = f"Error decoding command: {command}\n{str(e)}"
+            response += "\nPlease check the command format."
+            return response
 
         if opcode is None:
-            print("Invalid command format.")
-            return
+            response = "Invalid command opcode."
+            response += "\nPlease check the command opcode."
+            return response
         
         # Execute the command
-        response = self._execute(opcode, operands)
+        try:                                                    # try-execute for executing command
+            response = self._execute(opcode, operands)
+        except HTTPError as e:                                      # HTTPError from requests in notion_api.py
+            # Handle HTTP errors
+            response = f"Error executing command '/{opcode}'\n{str(e)}"
+            response += "\nPlease check the task_id available."
+        except ValueError as e:                                     # ValueError from datetime in task.py
+            # Handle ValueErrors (e.g., invalid date format)
+            response = f"Error executing command '/{opcode}'\n{str(e)}"
+            response += "\nPlease check the date format."
+        except CommandNotRecognizedError as e:                       # CommandNotRecognizedError from command.py
+            # Handle command not recognized error
+            response = f"Error executing command '/{opcode}'\n{str(e)}"
+            response += "\nPlease check the command opcode."
+        
         return response
     
     # 커맨드 디코딩
@@ -62,12 +83,14 @@ class CommandManager:
     # opcode에 해당하는 핸들러가 존재하면 핸들러의 execute 메소드 호출
     def _execute(self, opcode, operands):
         if opcode in self.handler_map:
-            try:
-                response = self.handler_map[opcode](operands)
-            except HTTPError as e:      # HTTPError from requests in notion_api.py
-                # Handle HTTP errors
-                response = f"Error executing command '/{opcode}'\n{str(e)}"
-            
+            response = self.handler_map[opcode](operands)
             return response
         else:
-            return f"Command {opcode} not recognized."
+            raise CommandNotRecognizedError(opcode)
+        
+
+class CommandNotRecognizedError(Exception):
+    def __init__(self, opcode, message="Command not recognized"):
+        self.opcode = opcode
+        self.message = f"{message}: {opcode}"
+        super().__init__(self.message)

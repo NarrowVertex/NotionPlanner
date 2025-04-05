@@ -37,6 +37,8 @@ class Planner:
 
         self._add_task_to_local(task)    # update task_list in local
 
+        return f"Task[{task_id}] added successfully!"
+
 
     # delete task
     def _delete_task_from_local(self, task_id):
@@ -45,6 +47,8 @@ class Planner:
     def delete_task(self, task_id):
         notion.delete_task_from_remote(task_id)
         self._delete_task_from_local(task_id)
+
+        return f"Task[{task_id}] deleted successfully!"
 
 
     # edit task
@@ -59,6 +63,8 @@ class Planner:
     def edit_task(self, task_id, task):
         notion.edit_task_from_remote(task_id, task)
         self._edit_task_from_local(task_id, task)
+
+        return f"Task[{task_id}] updated successfully!"
 
 
     # get task

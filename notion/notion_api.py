@@ -120,7 +120,6 @@ def edit_task_from_remote(task_id, task):
     }
     
     endpoint = f'/pages/{task_id}'
-    url = base_url + endpoint
-    response = requests.patch(url, headers=headers, json=request_json)
-    return response.json()
+    response = request_patch(endpoint, request_json)
+    return response
 

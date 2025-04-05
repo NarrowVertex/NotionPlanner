@@ -12,6 +12,9 @@ class Task:
                 'end': None
             }
         
+        date['start'] = None if date['start'] == "None" else date['start']
+        date['end'] = None if date['end'] == "None" else date['end']
+
         self.date = {
             'start': date.get('start', None) if isinstance(date.get('start'), datetime) else datetime.fromisoformat(date.get('start')) if date.get('start') else None,
             'end': date.get('end', None) if isinstance(date.get('end'), datetime) else datetime.fromisoformat(date.get('end')) if date.get('end') else None
