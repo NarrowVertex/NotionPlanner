@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 from command import CommandHandler
 from notion import Task
+import os
+import json
+
+command_spec_directory = 'command/commands/command_specs'
 
 
 def register_commands(handler: CommandHandler):
@@ -9,8 +13,19 @@ def register_commands(handler: CommandHandler):
     command_list.append(CommandTaskAdd(handler))
     command_list.append(CommandTaskDelete(handler))
     command_list.append(CommandTaskEdit(handler))
+    command_list.append(CommandShowCommandSpec(handler))
 
     return command_list
+
+def register_command_specs():
+    command_spec_list = []
+    for filename in os.listdir(command_spec_directory):
+        if filename.endswith('.json'):
+            with open(os.path.join(command_spec_directory, filename), 'r') as f:
+                command_spec = json.load(f)
+                command_spec_list.append(command_spec)
+
+    return command_spec_list
 
 
 class Command(ABC):
@@ -94,3 +109,15 @@ class CommandTaskEdit(Command):
             return self.handler.handle_task_edit(task_id, task)
         else:
             return "Invalid number of arguments for task update."
+
+
+class CommandShowCommandSpec(Command):
+    def __init__(self, handler):
+        super().__init__(handler, "show_spec")
+
+    def handle(self, operands):
+        if len(operands) == 1:
+            command_opcode = operands[0]
+            return self.handler.handle_show_command_spec(command_opcode)
+        else:
+            return "Invalid number of arguments for command spec."

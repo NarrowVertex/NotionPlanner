@@ -7,18 +7,19 @@
             "description": "The name of the task"
         },
         "date": {
-            "type": "dict{start: string, end: string}",
-            "description": "The date of the task / format: YYYY-MM-DD HH:MM or None"
+            "type": "string",
+            "description": "The date of the task in either format:\n- Single datetime: 'YYYY-MM-DD HH:MM'\n- Start and end datetime: 'YYYY-MM-DD HH:MM YYYY-MM-DD HH:MM'"
         },
         "group": {
             "type": "string",
             "description": "The group of the task"
         }
     },
+    "opcode": "add",
     "usage": "/add <name> <date> <group>",
     "example": [
-        "/add task_name {'start': '2025-12-31 23:59', 'end': '2026-01-01 00:01'} group_name",
-        "/add task_name {'start': '2025-12-31 23:59', 'end': 'None'} group_name",
+        "/add task_name '2025-12-31 23:59' '2026-01-01 00:01' group_name",
+        "/add task_name '2025-12-31 23:59' 'None' group_name",
         "/add task_name '2025-12-31 23:59' group_name"
     ]
 }

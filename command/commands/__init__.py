@@ -1,1 +1,1 @@
-from .Command import register_commands
+from .Command import register_commands, register_command_specs

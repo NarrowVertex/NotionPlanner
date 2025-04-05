@@ -1,17 +1,33 @@
+import threading
 import shlex
 from requests.exceptions import HTTPError
 
 from command import CommandHandler
-from command import register_commands
+from command import register_commands, register_command_specs
 
 
 class CommandManager:
+    _instance = None
+    _lock = threading.Lock()  # 클래스 수준의 Lock 객체
+
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:   # 이중 잠금 확인
+                    cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
     def __init__(self):
+        if self._initialized:
+            return
+            
         self.command_handler = CommandHandler()
-
         self.handler_map = {}
-
+        self.command_spec_map = {}
         self._register()
+
+        self._initialized = True
 
     # 필요한 커맨드 등록
     # 등록은 CommandRegistry에서
@@ -21,6 +37,11 @@ class CommandManager:
         for command in command_list:
             self.handler_map[command.opcode] = command.handle
             print(f"Registered command: {command.opcode}")
+
+        command_spec_list = register_command_specs()
+        for command_spec in command_spec_list:
+            self.command_spec_map[command_spec["opcode"]] = command_spec
+            print(f"Registered command spec: {command_spec['opcode']}")
     
     # 외부에서 커맨드 실행 요청 시 사용
     # 커맨드 실행 시 CommandHandler의 execute 메소드 호출

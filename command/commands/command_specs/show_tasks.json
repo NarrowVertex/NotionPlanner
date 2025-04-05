@@ -1,0 +1,12 @@
+{
+    "name": "show_tasks",
+    "description": "Show all tasks in the task list",
+    "parameters": {
+
+    },
+    "opcode": "show",
+    "usage": "/show",
+    "example": [
+        "/show"
+    ]
+}

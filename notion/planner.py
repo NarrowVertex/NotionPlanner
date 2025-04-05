@@ -12,12 +12,17 @@ class Planner:
             with cls._lock:
                 if cls._instance is None:   # 이중 잠금 확인
                     cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
         return cls._instance
 
     def __init__(self):
-        if not hasattr(self, 'task_list'):
-            self.task_list = []
-            self.load_tasks()   # Load tasks from remote on initialization
+        if self._initialized:
+            return
+        
+        self.task_list = []
+        self.load_tasks()   # Load tasks from remote on initialization
+
+        self._initialized = True
 
 
     def load_tasks(self):

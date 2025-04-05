@@ -1,0 +1,29 @@
+{
+    "name": "edit_task",
+    "description": "Edit a task in the task list",
+    "parameters": {
+        "task_id": {
+            "type": "string[uuid]",
+            "description": "The id of the task to edit"
+        },
+        "name": {
+            "type": "string",
+            "description": "The new name of the task"
+        },
+        "date": {
+            "type": "string[datetime]",
+            "description": "The new date of the task in either format:\n- Single datetime: 'YYYY-MM-DD HH:MM'\n- Start and end datetime: 'YYYY-MM-DD HH:MM YYYY-MM-DD HH:MM'"
+        },
+        "group": {
+            "type": "string",
+            "description": "The new group of the task"
+        }
+    },
+    "opcode": "edit",
+    "usage": "/edit <task_id> <name> <date> <group>",
+    "example": [
+        "/edit 123e4567-e89b-12d3-a456-426614174000 new_task_name '2025-12-31 23:59' '2026-01-01 00:01' new_group_name",
+        "/edit 123e4567-e89b-12d3-a456-426614174000 new_task_name '2025-12-31 23:59' 'None' new_group_name",
+        "/edit 123e4567-e89b-12d3-a456-426614174000 new_task_name '2025-12-31 23:59' new_group_name"
+    ]
+}
