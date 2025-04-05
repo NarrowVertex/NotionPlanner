@@ -1,4 +1,5 @@
 import shlex
+from requests.exceptions import HTTPError
 
 from command import CommandHandler
 from command import register_commands
@@ -61,7 +62,12 @@ class CommandManager:
     # opcode에 해당하는 핸들러가 존재하면 핸들러의 execute 메소드 호출
     def _execute(self, opcode, operands):
         if opcode in self.handler_map:
-            response = self.handler_map[opcode](operands)
+            try:
+                response = self.handler_map[opcode](operands)
+            except HTTPError as e:      # HTTPError from requests in notion_api.py
+                # Handle HTTP errors
+                response = f"Error executing command '/{opcode}'\n{str(e)}"
+            
             return response
         else:
             return f"Command {opcode} not recognized."

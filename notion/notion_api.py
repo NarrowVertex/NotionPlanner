@@ -24,22 +24,30 @@ headers = {
 def request_get(endpoint):
     url = base_url + endpoint
     response = requests.get(url, headers=headers)
+    response.raise_for_status()     # Raise an error for bad responses (4xx and 5xx)
+
     return response.json()
 
 def request_post(endpoint, json_data):
     url = base_url + endpoint
     response = requests.post(url, headers={**headers, 'Content-Type': 'application/json'}, json=json_data)
+    response.raise_for_status()
+
     return response.json()
 
-def request_tasks():
-    request_json = None
-    response = request_post('/databases/' + database_id + '/query', request_json)
-    return response
+
+def request_patch(endpoint, json_data):
+    url = base_url + endpoint
+    response = requests.patch(url, headers=headers, json=json_data)
+    response.raise_for_status()
+    
+    return response.json()
 
 
 # functions
 def get_tasks():
-    response = request_tasks()
+    response = request_post('/databases/' + database_id + '/query', None)       # get all tasks from the database (max 20 tasks)
+    
     tasks = []
     for item in response['results']:
         properties = item['properties']
@@ -85,9 +93,10 @@ def add_task_to_remote(task):
 
 def delete_task_from_remote(task_id):
     endpoint = f'/pages/{task_id}'
-    url = base_url + endpoint
-    response = requests.patch(url, headers=headers, json={'archived': True})
-    return response.json()
+    request_json = {'archived': True}
+
+    response = request_patch(endpoint, request_json)
+    return response
 
 def edit_task_from_remote(task_id, task):
     properties = {

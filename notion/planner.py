@@ -1,15 +1,30 @@
+import threading
+
 import notion
 
+
 class Planner:
+    _instance = None
+    _lock = threading.Lock()  # 클래스 수준의 Lock 객체
+
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:   # 이중 잠금 확인
+                    cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self):
-        self.task_list = []
+        if not hasattr(self, 'task_list'):
+            self.task_list = []
+            self.load_tasks()   # Load tasks from remote on initialization
+
 
     def load_tasks(self):
         self.task_list = notion.get_tasks()
 
     def show_tasks(self):
-        for task in self.task_list:
-            print(task)
+        return "\n".join(str(task) for task in self.task_list)
 
 
     # add task
