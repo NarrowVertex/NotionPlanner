@@ -34,6 +34,11 @@ class PlannerAgent:
         - 명령어를 생성하고 실행하고 결과를 받고, 다시 명령어를 생성하는 루프에서 최종 목표에 도달하면 최종 결과를 front pipeline한테 전달함
         """
 
+        """ TODO
+        llm이 생성한 response가 형태가 맞지 않는 경우
+        조건이 맞지 않았을 때 다시 response를 생성하도록 자동화시키기
+        """
+
         # Initialize functions
         self.chat_history = InMemoryChatMessageHistory()
 
@@ -50,8 +55,11 @@ class PlannerAgent:
         - If you want to react to the user, say '/human' as prefix
         - If you want to react to the core agent, say '/core' as prefix
 
-        Example:
+        And there are additional rules about how to react:
+        - If your prefix is '/human', you respond to the user with his language.
+        - If your prefix is '/core', you respond to the core agent with English only.
 
+        Example:
         User: Hey, I'd like to want to know about 'apple'.
         
         You: /human
@@ -121,7 +129,7 @@ class PlannerAgent:
         model = ChatOpenAI(
             model=openai_deployment,
             openai_api_key=openai_api_key,
-            temperature=0.5,
+            temperature=0.2,
             max_tokens=500,
             timeout=30,
             max_retries=3
@@ -130,17 +138,45 @@ class PlannerAgent:
         # Define output parser
         output_parser = StrOutputParser()
 
-        # Combine the pipeline
-        self.front_chain = front_prompt_template | model | output_parser
+        # 계속 $와 /를 혼동하므로 교정 함수 추가
+        front_output_correction = lambda x: x.replace('$', '/')
+        self.front_chain = front_prompt_template | model | output_parser | front_output_correction
         self.front_chain_core_responsed = front_prompt_core_responsed_template | model | output_parser
         self.core_chain = core_prompt_template | model | output_parser
 
         self.rag = RAG("command_vector_store", "agent/vector_store/command")
 
+    def retry_chain_invoke(self, chain, inputs, validation_fn, max_retries=3):
+        """
+        Invoke a chain with retries if validation fails
+        
+        Args:
+            chain: The chain to invoke
+            inputs: Dictionary of inputs for the chain
+            validation_fn: Function that validates the response
+            max_retries: Maximum number of retry attempts
+        
+        Returns:
+            Valid response or raises ValueError after max retries
+        """
+        for attempt in range(max_retries):
+            response = chain.invoke(inputs)
+            if validation_fn(response):
+                return response
+            print(f"Validation failed, attempt {attempt + 1} of {max_retries}")
+            print("Failed response: ", response)
+        
+        raise ValueError(f"Failed to get valid response after {max_retries} attempts")
+
     def response(self, human_query):
-        front_agent_response = self.front_chain.invoke({
+        front_agent_query = {
             "human_query": human_query
-        })
+        }
+        front_agent_response = self.retry_chain_invoke(
+            self.front_chain,
+            front_agent_query,
+            lambda x: x.startswith("/human") or x.startswith("/core")
+        )
         print("Front agent response: ", front_agent_response)
 
         if front_agent_response.startswith("/human"):
@@ -159,10 +195,11 @@ class PlannerAgent:
             command_guideline = self.rag.search(core_query)
             print("Command guideline: ", command_guideline)
 
-            core_agent_response = self.core_chain.invoke({
-                "front_query": human_query,
+            core_agent_query = {
+                "front_query": core_query,
                 "command_guideline": command_guideline
-            })
+            }
+            core_agent_response = self.core_chain.invoke(core_agent_query)
             print("Core agent response: ", core_agent_response)
             
             response = core_agent_response
