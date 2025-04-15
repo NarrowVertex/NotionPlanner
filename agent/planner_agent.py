@@ -35,8 +35,9 @@ class PlannerAgent:
         """
 
         """ TODO
-        llm이 생성한 response가 형태가 맞지 않는 경우
-        조건이 맞지 않았을 때 다시 response를 생성하도록 자동화시키기
+        front agent와 core agent와의 상호 대화를 통해서
+        core agent에서 front agent에게 command guideline으로 얻은 명령어가 적절치 않은 경우에
+        다른 명령어를 요구하고 front agent가 다시 query를 생성해서 command guideline을 생성하여 다시 전달할 수 있도록 구성해야 함
         """
 
         # Initialize functions
@@ -57,7 +58,7 @@ class PlannerAgent:
 
         And there are additional rules about how to react:
         - If your prefix is '/human', you respond to the user with his language.
-        - If your prefix is '/core', you respond to the core agent with English only.
+        - If your prefix is '/core', you respond to the core agent with English ONLY.
 
         Example:
         User: Hey, I'd like to want to know about 'apple'.
@@ -116,6 +117,11 @@ class PlannerAgent:
         the front agent's query: Show me the task list
         the command guideline: {{"name": "show_tasks", "description": "Show all tasks in the task list", "parameters": {{}}, "opcode": "show", "usage": "/show", "example": ["/show"]}}
         the core agent's response: /show
+
+        P.S.
+        When you add the date in the parameters, you need to add the date in the format of 'YYYY-MM-DD HH:MM'.
+        And the date would be covered by ''.
+        If there are multiple dates, you need to add the date in the format of 'YYYY-MM-DD HH:MM' 'YYYY-MM-DD HH:MM'.
         """
 
         core_prompt_template = ChatPromptTemplate.from_messages([
