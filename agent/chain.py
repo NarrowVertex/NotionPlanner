@@ -1,10 +1,13 @@
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
 import os
 from abc import ABC, abstractmethod
 from typing import override
+
+from RAG import RAG
 
 
 load_dotenv()
@@ -37,7 +40,7 @@ class Chain(ABC):
     def invoke(self, inputs: dict) -> str:
         pass
     
-    def retry_chain_invoke(self, inputs: dict, validation_fn: callable, max_retries: int = 3):
+    def retry_chain_invoke(self, chain, inputs: dict, validation_fn: callable, max_retries: int = 3):
         """
         Invoke a chain with retries if validation fails
         
@@ -51,7 +54,7 @@ class Chain(ABC):
             Valid response or raises ValueError after max retries
         """
         for attempt in range(max_retries):
-            response = self.invoke(inputs)
+            response = chain.invoke(inputs)
             if validation_fn(response):
                 return response
             print(f"Validation failed, attempt {attempt + 1} of {max_retries}")
@@ -61,12 +64,12 @@ class Chain(ABC):
 
 
 
-class FrontChain(Chain):
+class PlannerChain(Chain):
     def __init__(self):
         super().__init__()
 
-        front_prompt = """
-        You are a front agent.
+        interface_prompt = """
+        You are a interface agent.
         Your task is as follows:
         1. Receive a query from the user.
         2. If the query is not about a task, respond to the user directly.
@@ -110,48 +113,46 @@ class FrontChain(Chain):
         You: /human
         (Response about the user's query referenced with core's executed commands response.) 
         """
-
-        # prompt
-        front_prompt_template = ChatPromptTemplate.from_messages([
-            ("system", front_prompt),
+        interface_prompt_template = ChatPromptTemplate.from_messages([
+            ("system", interface_prompt),
             ("human", "the user's query: {human_query}")
         ])
+        interface_output_correction = lambda x: x.replace('$', '/')             # 계속 $와 /를 혼동하므로 교정 함수 추가
+        self.interface_chain = interface_prompt_template | model | output_parser | interface_output_correction
 
-        front_prompt_core_responsed_template = ChatPromptTemplate.from_messages([
-            ("system", front_prompt),
-            ("human", "the user's query: {human_query}"),
-            ("system", "the front agent's query: {front_query}"),
-            ("system", "the core agent's response: {core_response}")
+        interpreter_prompt = """
+        You are a interpreter agent.
+        At first, you'll receive a query from the interface agent.
+        And your task is to create a query, which will be a input for RAG and a core agent.
+        RAG will find a command guideline for the query.
+        Then the core agent get both the command guideline and your query.
+        If the core agent find that there are unmatched command guideline and your query, it will ask you to change the query.
+        And you need to change the query and send it to the core agent again.
+
+        You need to respond to the core agent with English ONLY.
+        """
+        interpreter_prompt_template = ChatPromptTemplate.from_messages([
+            ("system", interpreter_prompt),
+            ("system", "the interface agent's query: {interface_query}"),
+            MessagesPlaceholder(variable_name="history"),
+            ("system", "your response: ")
         ])
-
-        # 계속 $와 /를 혼동하므로 교정 함수 추가
-        front_output_correction = lambda x: x.replace('$', '/')
-
-        self.front_chain = front_prompt_template | model | output_parser | front_output_correction
-        self.front_chain_core_responsed = front_prompt_core_responsed_template | model | output_parser
-    
-    @override
-    def invoke(self, inputs: dict) -> str:
-        return self.front_chain.invoke(inputs)
-
-
-class CoreChain(Chain):
-    def __init__(self):
-        super().__init__()
+        self.interpreter_chain = interpreter_prompt_template | model | output_parser
 
         core_prompt = """
         You are a core agent.
         Your task is as follows:
-        1. Receive a query from the front agent.
-        2. With the front agent's query, you will receive a command guideline.
-        3. Based on the front agent's query and the command guideline, generate a command.
-        
+        1. Receive a query from the interpreter agent.
+        2. With the interpreter agent's query, you will receive a command guideline.
+        3. Based on the interpreter agent's query and the command guideline, generate a command.
+        4. If the command guildeline is unmatched with the interpreter agent's query, ask the interpreter agent to change the query.
+
         Example:
-        the front agent's query: Create a task named 'Afternoon work' from 5 pm to 5:30 pm
+        the interpreter agent's query: Create a task named 'Afternoon work' from 5 pm to 5:30 pm
         the command guideline: {{"name": "add_task", "description": "Add a task to the task list", "parameters": {{"name": {{"type": "string", "description": "The name of the task"}}, "date": {{"type": "string", "description": "The date of the task in either format:\n- Single datetime: 'YYYY-MM-DD HH:MM'\n- Start and end datetime: 'YYYY-MM-DD HH:MM YYYY-MM-DD HH:MM'"}}, "group": {{"type": "string", "description": "The group of the task"}}}}, "opcode": "add", "usage": "/add <name> <date> <group>", "example": ["/add task_name '2025-12-31 23:59' '2026-01-01 00:01' group_name", "/add task_name '2025-12-31 23:59' 'None' group_name", "/add task_name '2025-12-31 23:59' group_name"]}}
         the core agent's response: /add 'Afternoon work' '2025-12-31 17:00' '2025-12-31 17:30' 'None'
 
-        the front agent's query: Show me the task list
+        the interpreter agent's query: Show me the task list
         the command guideline: {{"name": "show_tasks", "description": "Show all tasks in the task list", "parameters": {{}}, "opcode": "show", "usage": "/show", "example": ["/show"]}}
         the core agent's response: /show
 
@@ -160,16 +161,94 @@ class CoreChain(Chain):
         And the date would be covered by ''.
         If there are multiple dates, you need to add the date in the format of 'YYYY-MM-DD HH:MM' 'YYYY-MM-DD HH:MM'.
         """
-
         core_prompt_template = ChatPromptTemplate.from_messages([
             ("system", core_prompt),
-            ("system", "the front agent's query: {front_query}"),
+            ("system", "the interpreter agent's query: {interpreter_query}"),
             ("system", "the command guideline: {command_guideline}"),
             ("system", "the core agent's response: ")
         ])
-
         self.core_chain = core_prompt_template | model | output_parser
 
+        self.rag = RAG("command_vector_store", "agent/vector_store/command")
+
+    
+    # input: human_query
+    # output: total response
     @override
     def invoke(self, inputs: dict) -> str:
-        return self.core_chain.invoke(inputs)
+        human_query = inputs
+
+        interface_agent_response = self.interface_response(human_query)
+        print("interface agent response: ", interface_agent_response)
+
+        # "/human"
+        if interface_agent_response.startswith("/human"):
+            print("[Human]")
+
+            human_response = interface_agent_response.split("/human")[1].strip()
+            return human_response
+        
+        # "/core"
+        print("[Core]")
+        
+        # not directly to the core agents, but to the interpreter agent
+        interpreter_query = interface_agent_response.split("/core")[1].strip()
+        print("interpreter query: ", interpreter_query)
+
+        core_agent_response = self.communicate(interpreter_query)
+
+        return core_agent_response
+    
+    
+    def interface_response(self, human_query):
+        interface_agent_query = {
+            "human_query": human_query
+        }
+        interface_agent_response = self.retry_chain_invoke(
+            self.interface_chain,
+            interface_agent_query,
+            lambda x: x.startswith("/human") or x.startswith("/core")
+        )
+        return interface_agent_response
+    
+    def interpreter_response(self, interface_query, history: InMemoryChatMessageHistory):
+        interpreter_agent_query = {
+            "interface_query": interface_query,
+            "history": history.messages
+        }
+        interpreter_agent_response = self.interpreter_chain.invoke(interpreter_agent_query)
+        return interpreter_agent_response
+    
+    def core_response(self, interpreter_query, command_guideline):
+        core_agent_query = {
+            "interpreter_query": interpreter_query,
+            "command_guideline": command_guideline
+        }
+        core_agent_response = self.core_chain.invoke(core_agent_query)
+        return core_agent_response
+    
+
+    def communicate(self, interface_query, max_communication=3):
+        # for the agents
+        chat_history = InMemoryChatMessageHistory()
+
+        for i in range(max_communication):
+            # interpreter
+            interpreter_response = self.interpreter_response(interface_query, chat_history)
+            chat_history.add_user_message(f"interpreter agent: {interpreter_response}")
+            print(f"Interpreter agent: {interpreter_response}")
+
+            # ragn & core
+            command_guideline = self.rag.search(interpreter_response)
+            core_agent_response = self.core_response(interpreter_response, command_guideline)
+
+            # success to create the command
+            if core_agent_response.startswith("/"):
+                return core_agent_response
+            
+            # fail to create the command
+            chat_history.add_ai_message(f"core agent: {core_agent_response}")
+            print(f"Core agent: {core_agent_response}")
+
+        # after all try are failed, raise Exception
+

@@ -1,9 +1,9 @@
 from langchain_core.chat_history import InMemoryChatMessageHistory
 
 # from agent import RAG
-# from agent import FrontChain, CoreChain
+# from agent import PlannerChain
 from RAG import RAG
-from chain import FrontChain, CoreChain
+from chain import PlannerChain
 
 
 class PlannerAgent:
@@ -29,50 +29,13 @@ class PlannerAgent:
         다른 명령어를 요구하고 front agent가 다시 query를 생성해서 command guideline을 생성하여 다시 전달할 수 있도록 구성해야 함
         """
 
-        # Initialize functions
-        self.chat_history = InMemoryChatMessageHistory()
-
-        self.front_chain = FrontChain()
-        self.core_chain = CoreChain()
-
-        self.rag = RAG("command_vector_store", "agent/vector_store/command")
+        self.planner_chain = PlannerChain()
 
 
     def response(self, human_query):
-        front_agent_query = {
-            "human_query": human_query
-        }
-        front_agent_response = self.front_chain.retry_chain_invoke(
-            front_agent_query,
-            lambda x: x.startswith("/human") or x.startswith("/core")
-        )
-        print("Front agent response: ", front_agent_response)
+        agent_response = self.planner_chain.invoke(human_query)
+        return agent_response
 
-        # "/human"
-        if front_agent_response.startswith("/human"):
-            print("[Human]")
-
-            human_response = front_agent_response.split("/human")[1].strip()
-            return human_response
-        
-        # "/core"
-        print("[Core]")
-        
-        core_query = front_agent_response.split("/core")[1].strip()
-        print("Core query: ", core_query)
-
-        command_guideline = self.rag.search(core_query)
-        print("Command guideline: ", command_guideline)
-        
-        core_agent_query = {
-            "front_query": core_query,
-            "command_guideline": command_guideline
-        }
-        
-        core_agent_response = self.core_chain.invoke(core_agent_query)
-        print("Core agent response: ", core_agent_response)
-        return core_agent_response
-    
     
 
 if __name__ == "__main__":
