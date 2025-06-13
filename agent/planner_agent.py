@@ -1,10 +1,10 @@
 from langchain_core.chat_history import InMemoryChatMessageHistory
 
-# from agent import RAG
-# from agent import PlannerChain
-from RAG import RAG
-from chain import PlannerChain
-
+from agent import RAG
+from agent import PlannerChain
+# from RAG import RAG
+# from chain import PlannerChain
+from command import CommandManager
 
 class PlannerAgent:
     def __init__(self):
@@ -30,12 +30,33 @@ class PlannerAgent:
         """
 
         self.planner_chain = PlannerChain()
+        self.command_manager = CommandManager()
 
 
     def response(self, human_query):
         agent_response = self.planner_chain.invoke(human_query)
+        
+        if agent_response:
+            print("Created command: ", agent_response)
+            human_access = input("Do you want to execute the command? (y/n): ").strip().lower()
+            if human_access == 'y':
+                print(f"Executing command: {agent_response}")
+                return self.execute_command(agent_response)
+            elif human_access == 'n':
+                return "Command execution cancelled."
+            else:
+                return "Command execution cancelled due to invalid input."
+        else:
+            print("Failed to create a command after multiple attempts.")
+            return "Failed to create a command."
+        
         return agent_response
 
+    def execute_command(self, command):
+        response = self.command_manager.execute_command(command)
+        if response:
+            return response
+        
     
 
 if __name__ == "__main__":

@@ -7,7 +7,8 @@ import os
 from abc import ABC, abstractmethod
 from typing import override
 
-from RAG import RAG
+# from RAG import RAG
+from agent import RAG
 
 
 load_dotenv()
