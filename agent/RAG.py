@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import uuid
 
 class RAG:
-    def __init__(self, name: str, path: str):
+    def __init__(self, name: str, path: str, k: int = 1):
         self.name = name
         self.path = path
 
@@ -40,7 +40,7 @@ class RAG:
 
         self.retriever = self.vector_store.as_retriever(
             search_type="similarity",
-            search_kwargs={"k": 1}
+            search_kwargs={"k": k}
         )
 
     def add_document(self, data: str):
