@@ -130,7 +130,7 @@ class PlannerChain(Chain):
         If the core agent find that there are unmatched command guideline and your query, it will ask you to change the query.
         And you need to change the query and send it to the core agent again.
 
-        You need to respond to the core agent with English ONLY.
+        You need to respond to the core agent with English ONLY except for the task info lik name, date, and group.
         """
         interpreter_prompt_template = ChatPromptTemplate.from_messages([
             ("system", interpreter_prompt),
@@ -170,7 +170,7 @@ class PlannerChain(Chain):
         ])
         self.core_chain = core_prompt_template | model | output_parser
 
-        self.rag = RAG("command_vector_store", "agent/vector_store/command")
+        self.rag = RAG("command_vector_store", "agent/vector_store/command", k=2)
 
     
     # input: human_query
