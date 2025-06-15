@@ -30,7 +30,14 @@ class Planner:
 
     def show_tasks(self):
         return "\n".join(str(task) for task in self.task_list)
+    
+    def show_tasks_by_group(self, group):
+        task_list = notion.get_tasks_by_group(group)
+        return "\n".join(str(task) for task in task_list) if task_list else "No tasks found in this group."
 
+    def show_tasks_after_now(self):
+        task_list = notion.get_tasks_after_now()
+        return "\n".join(str(task) for task in task_list) if task_list else "No tasks found after now."
 
     # add task
     def _add_task_to_local(self, task):

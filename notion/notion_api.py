@@ -1,5 +1,6 @@
 import requests
 import json
+import datetime
 
 import os
 from dotenv import load_dotenv
@@ -60,6 +61,53 @@ def get_tasks():
         tasks.append(Task(task_id, name, date, group))
     return tasks
 
+def get_tasks_by_group(group_name):
+    filter_condition = {
+        "property": "그룹",
+        "select": {
+            "equals": group_name
+        }
+    }
+    request_json = {
+        "filter": filter_condition
+    }
+    response = request_post('/databases/' + database_id + '/query', request_json)       # get all tasks from the database (max 20 tasks)
+    
+    tasks = []
+    for item in response['results']:
+        properties = item['properties']
+        task_id = item['id']
+        name = properties['이름']['title'][0]['plain_text'] if properties['이름']['title'] else ''
+        start_date = properties.get('날짜', {}).get('date', {}).get('start', '')
+        end_date = properties.get('날짜', {}).get('date', {}).get('end', '')
+        date = {'start': start_date, 'end': end_date}
+        group = properties.get('그룹', {}).get('select', {}).get('name', '') if properties.get('그룹', {}).get('select') else ''
+        tasks.append(Task(task_id, name, date, group))
+    return tasks
+
+def get_tasks_after_now():
+    now_date = datetime.datetime.now().astimezone().isoformat()
+    filter_condition = {
+        "property": "날짜",
+        "date": {
+            "on_or_after": now_date
+        }
+    }
+    request_json = {
+        "filter": filter_condition
+    }
+    response = request_post('/databases/' + database_id + '/query', request_json)       # get all tasks from the database (max 20 tasks)
+    tasks = []
+    for item in response['results']:
+        properties = item['properties']
+        task_id = item['id']
+        name = properties['이름']['title'][0]['plain_text'] if properties['이름']['title'] else ''
+        start_date = properties.get('날짜', {}).get('date', {}).get('start', '')
+        end_date = properties.get('날짜', {}).get('date', {}).get('end', '')
+        date = {'start': start_date, 'end': end_date}
+        group = properties.get('그룹', {}).get('select', {}).get('name', '') if properties.get('그룹', {}).get('select') else ''
+        tasks.append(Task(task_id, name, date, group))
+    return tasks
 
 def add_task_to_remote(task):
     name = task.name
