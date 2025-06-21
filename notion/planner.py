@@ -86,3 +86,36 @@ class Planner:
                 return t.task_id
             
         return None
+
+
+class ConfirmablePlanner(Planner):
+    def __init__(self):
+        super().__init__()
+
+    def confirm(self, action_name, action_info):
+        print(f"Action[{action_name}] has been requested.")
+        print(f"Action info: \n{action_info}")
+
+        confirmation = input(f"Do you confirm this? (yes/no): ").strip().lower()
+        if confirmation == 'yes' or confirmation == 'y':
+            return True
+        else:
+            return False
+        
+    def add_task(self, task):
+        action_info = f"Task Name: {task.name}, Date: {task.date}, Group: {task.group}"
+        if self.confirm("Add Task", action_info):
+            return super().add_task(task)
+        return "Task addition cancelled by user."
+    
+    def delete_task(self, task_id):
+        action_info = f"Task ID: {task_id}"
+        if self.confirm("Delete Task", action_info):
+            return super().delete_task(task_id)
+        return "Task deletion cancelled by user."
+    
+    def edit_task(self, task_id, task):
+        action_info = f"Task ID: {task_id}, New Name: {task.name}, New Date: {task.date}, New Group: {task.group}"
+        if self.confirm("Edit Task", action_info):
+            return super().edit_task(task_id, task)
+        return "Task edit cancelled by user."
