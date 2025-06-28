@@ -51,6 +51,12 @@ class Planner:
 
         return f"Task[{task_id}] added successfully!"
 
+    def add_tasks(self, tasks):
+        for task in tasks:
+            self.add_task(task)  # Use the existing add_task method for each task
+
+        return f"{len(tasks)} Tasks added successfully!"
+
 
     # delete task
     def _delete_task_from_local(self, task_id):
@@ -61,6 +67,12 @@ class Planner:
         self._delete_task_from_local(task_id)
 
         return f"Task[{task_id}] deleted successfully!"
+    
+    def delete_tasks(self, task_ids):
+        for task_id in task_ids:
+            self.delete_task(task_id)
+
+        return f"{len(task_ids)} Tasks deleted successfully!"
 
 
     # edit task
@@ -77,6 +89,12 @@ class Planner:
         self._edit_task_from_local(task_id, task)
 
         return f"Task[{task_id}] updated successfully!"
+    
+    def edit_tasks(self, task_updates):
+        for task_id, task in task_updates.items():
+            self.edit_task(task_id, task)
+
+        return f"{len(task_updates)} Tasks updated successfully!"
 
 
     # get task
@@ -108,10 +126,22 @@ class ConfirmablePlanner(Planner):
             return super().add_task(task)
         return "Task addition cancelled by user."
     
+    def add_tasks(self, tasks):
+        action_info = "\n".join(f"Task Name: {task.name}, Date: {task.date}, Group: {task.group}" for task in tasks)
+        if self.confirm("Add Tasks", action_info):
+            return super().add_tasks(tasks)
+        return "Task addition cancelled by user."
+    
     def delete_task(self, task_id):
         action_info = f"Task ID: {task_id}"
         if self.confirm("Delete Task", action_info):
             return super().delete_task(task_id)
+        return "Task deletion cancelled by user."
+    
+    def delete_tasks(self, task_ids):
+        action_info = ", ".join(f"Task ID: {task_id}" for task_id in task_ids)
+        if self.confirm("Delete Tasks", action_info):
+            return super().delete_tasks(task_ids)
         return "Task deletion cancelled by user."
     
     def edit_task(self, task_id, task):
@@ -119,3 +149,10 @@ class ConfirmablePlanner(Planner):
         if self.confirm("Edit Task", action_info):
             return super().edit_task(task_id, task)
         return "Task edit cancelled by user."
+    
+    def edit_tasks(self, task_updates):
+        action_info = "\n".join(f"Task ID: {task_id}, New Name: {task.name}, New Date: {task.date}, New Group: {task.group}" for task_id, task in task_updates.items())
+        if self.confirm("Edit Tasks", action_info):
+            return super().edit_tasks(task_updates)
+        return "Task edit cancelled by user."
+    
