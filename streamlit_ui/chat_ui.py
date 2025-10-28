@@ -1,4 +1,5 @@
 import streamlit as st
+from langchain_core.messages import HumanMessage
 
 
 def render_chat_interface():
@@ -25,18 +26,31 @@ def render_chat_interface():
         if prompt.lower() == 'exit':
             st.stop()
 
-        command_manager = st.session_state.command_manager
-        response = command_manager.execute_command(prompt)
+        if prompt.startswith('/'):
+            # command
 
-        if response:
+            command_manager = st.session_state.command_manager
+            response = command_manager.execute_command(prompt)
+
+            if response:
+                with st.chat_message("assistant"):
+                    st.markdown(response)
+
+                st.session_state.messages.append({"role": "assistant", "content": response})
+            else:
+                with st.chat_message("assistant"):
+                    st.markdown("I'm sorry, I couldn't process that command.")
+
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": "I'm sorry, I couldn't process that command."}
+                )
+        else:
+            # normal message processing
+            tool_agent = st.session_state.tool_agent
+            response = tool_agent.invoke({"messages": [HumanMessage(content=prompt)]}, {"thread_id": 1})
+            response = response["messages"][-1].content
+
             with st.chat_message("assistant"):
                 st.markdown(response)
 
             st.session_state.messages.append({"role": "assistant", "content": response})
-        else:
-            with st.chat_message("assistant"):
-                st.markdown("I'm sorry, I couldn't process that command.")
-
-            st.session_state.messages.append(
-                {"role": "assistant", "content": "I'm sorry, I couldn't process that command."}
-            )
